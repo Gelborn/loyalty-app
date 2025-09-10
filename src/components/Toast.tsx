@@ -20,11 +20,11 @@ export function Toast({ message, type, onClose, duration = 4000 }: ToastProps) {
     info: AlertCircle,
   }[type];
 
-  // Sem azul: info em roxo
-  const borderText = {
+  // info agora em roxo
+  const styles = {
     success: 'border-emerald-400 text-emerald-300',
-    error:   'border-red-400 text-red-300',
-    info:    'border-purple-400 text-purple-300',
+    error: 'border-red-400 text-red-300',
+    info: 'border-purple-400 text-purple-300',
   }[type];
 
   return (
@@ -36,18 +36,15 @@ export function Toast({ message, type, onClose, duration = 4000 }: ToastProps) {
         bg-neutral-900/90 backdrop-blur
         shadow-xl
         animate-in slide-in-from-top-5 fade-in-0
-        ${borderText}
+        ${styles}
       `}
-      role="status"
-      aria-live="polite"
     >
       <div className="flex items-start gap-3">
         <Icon className="mt-[2px] shrink-0" size={18} />
         <p className="flex-1 text-sm text-white font-medium">{message}</p>
         <button
           onClick={onClose}
-          className="text-white/70 hover:text-white transition-colors"
-          aria-label="Fechar"
+          className="text-white/60 hover:text-white transition-colors"
         >
           <X size={16} />
         </button>
