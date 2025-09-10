@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { CheckCircle2, XCircle, AlertCircle, X } from 'lucide-react';
 
 interface ToastProps {
   message: string;
@@ -10,34 +10,46 @@ interface ToastProps {
 
 export function Toast({ message, type, onClose, duration = 4000 }: ToastProps) {
   useEffect(() => {
-    const timer = setTimeout(onClose, duration);
-    return () => clearTimeout(timer);
+    const t = setTimeout(onClose, duration);
+    return () => clearTimeout(t);
   }, [onClose, duration]);
 
-  const icons = {
-    success: CheckCircle,
+  const Icon = {
+    success: CheckCircle2,
     error: XCircle,
     info: AlertCircle,
-  };
+  }[type];
 
-  const Icon = icons[type];
-
-  const colors = {
-    success: 'bg-green-500 border-green-400',
-    error: 'bg-red-500 border-red-400',
-    info: 'bg-blue-500 border-blue-400',
-  };
+  // Sem azul: info em roxo
+  const borderText = {
+    success: 'border-emerald-400 text-emerald-300',
+    error:   'border-red-400 text-red-300',
+    info:    'border-purple-400 text-purple-300',
+  }[type];
 
   return (
-    <div className={`fixed top-4 left-4 right-4 z-50 p-4 rounded-lg border ${colors[type]} text-white shadow-lg animate-in slide-in-from-top-2 fade-in-0`}>
-      <div className="flex items-center gap-3">
-        <Icon size={20} />
-        <p className="flex-1 text-sm font-medium">{message}</p>
-        <button 
+    <div
+      className={`
+        fixed top-4 right-4 z-[9999]
+        max-w-sm min-w-[280px]
+        px-4 py-3 rounded-xl border
+        bg-neutral-900/90 backdrop-blur
+        shadow-xl
+        animate-in slide-in-from-top-5 fade-in-0
+        ${borderText}
+      `}
+      role="status"
+      aria-live="polite"
+    >
+      <div className="flex items-start gap-3">
+        <Icon className="mt-[2px] shrink-0" size={18} />
+        <p className="flex-1 text-sm text-white font-medium">{message}</p>
+        <button
           onClick={onClose}
-          className="text-white/80 hover:text-white transition-colors"
+          className="text-white/70 hover:text-white transition-colors"
+          aria-label="Fechar"
         >
-          <XCircle size={18} />
+          <X size={16} />
         </button>
       </div>
     </div>

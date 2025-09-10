@@ -1,13 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { User, Star, Gift, LogOut, RefreshCw, Copy, CheckCircle } from 'lucide-react';
+import { User, Star, Gift, LogOut, RefreshCw } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { LoyaltyMember, MemberBalance, PointsLedgerEntry } from '../types';
+import { LoyaltyMember, PointsLedgerEntry } from '../types';
 import { PointsHistory } from './PointsHistory';
 import { RedeemModal } from './RedeemModal';
+import { RedemptionsHistory, RedemptionEntry } from './RedemptionsHistory';
+import { RedeemCodeModal } from './RedeemCodeModal';
 
 interface DashboardProps {
   onToast: (message: string, type: 'success' | 'error' | 'info') => void;
 }
+
+type TabKey = 'history' | 'redemptions';
 
 export function Dashboard({ onToast }: DashboardProps) {
   const [member, setMember] = useState<LoyaltyMember | null>(null);
@@ -15,9 +19,14 @@ export function Dashboard({ onToast }: DashboardProps) {
   const [history, setHistory] = useState<PointsLedgerEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [historyLoading, setHistoryLoading] = useState(true);
+
+  const [redemptions, setRedemptions] = useState<RedemptionEntry[]>([]);
+  const [redemptionsLoading, setRedemptionsLoading] = useState(true);
+
+  const [activeTab, setActiveTab] = useState<TabKey>('history');
+
   const [showRedeemModal, setShowRedeemModal] = useState(false);
   const [redeemCode, setRedeemCode] = useState<string | null>(null);
-  const [copiedCode, setCopiedCode] = useState(false);
 
   useEffect(() => {
     loadMemberData();
@@ -26,13 +35,12 @@ export function Dashboard({ onToast }: DashboardProps) {
   const loadMemberData = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      
       if (!user) {
         onToast('Sessão expirada', 'error');
         return;
       }
 
-      // Get member data
+      // Membro
       const { data: memberData, error: memberError } = await supabase
         .from('loyalty_members')
         .select('id, email, user_id, created_at')
@@ -44,24 +52,22 @@ export function Dashboard({ onToast }: DashboardProps) {
         await supabase.auth.signOut();
         return;
       }
-
       setMember(memberData);
 
-      // Get balance
+      // Saldo
       const { data: balanceData, error: balanceError } = await supabase
         .from('member_balances')
         .select('points')
         .eq('member_id', memberData.id)
         .single();
+      if (!balanceError && balanceData) setBalance(balanceData.points);
 
-      if (!balanceError && balanceData) {
-        setBalance(balanceData.points);
-      }
-
-      // Get history
-      loadHistory(memberData.id);
-
-    } catch (error) {
+      // Histórico + Resgates
+      await Promise.all([
+        loadHistory(memberData.id),
+        loadRedemptions(memberData.id),
+      ]);
+    } catch {
       onToast('Erro ao carregar dados', 'error');
     } finally {
       setLoading(false);
@@ -71,20 +77,52 @@ export function Dashboard({ onToast }: DashboardProps) {
   const loadHistory = async (memberId: string) => {
     setHistoryLoading(true);
     try {
-      const { data: historyData, error: historyError } = await supabase
+      const { data, error } = await supabase
         .from('points_ledger')
         .select('id, member_id, delta_points, reason, created_at')
         .eq('member_id', memberId)
         .order('created_at', { ascending: false })
         .limit(50);
 
-      if (!historyError && historyData) {
-        setHistory(historyData);
-      }
-    } catch (error) {
-      console.error('Error loading history:', error);
+      if (!error && data) setHistory(data);
     } finally {
       setHistoryLoading(false);
+    }
+  };
+
+  const loadRedemptions = async (memberId: string) => {
+    setRedemptionsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('redemptions')
+        .select(`
+          id,
+          member_id,
+          reward_id,
+          discount_code,
+          status,
+          created_at,
+          reward:rewards ( id, name, cost_points )
+        `)
+        .eq('member_id', memberId)
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      if (!error && data) {
+        const mapped: RedemptionEntry[] = data.map((r: any) => ({
+          id: r.id,
+          code: r.discount_code ?? '',
+          status: r.status ?? 'active',
+          created_at: r.created_at,
+          redeemed_at: null,
+          reward: r.reward
+            ? { id: r.reward.id, name: r.reward.name, cost_points: r.reward.cost_points ?? 0 }
+            : { id: r.reward_id, name: 'Recompensa', cost_points: 0 },
+        }));
+        setRedemptions(mapped);
+      }
+    } finally {
+      setRedemptionsLoading(false);
     }
   };
 
@@ -93,25 +131,9 @@ export function Dashboard({ onToast }: DashboardProps) {
   };
 
   const handleRedeemSuccess = (code: string) => {
-    setRedeemCode(code);
+    setRedeemCode(code);            // abre o modal com o código
     onToast('Recompensa resgatada com sucesso!', 'success');
-    // Reload data after successful redemption
-    if (member) {
-      loadMemberData();
-    }
-  };
-
-  const handleCopyCode = async () => {
-    if (redeemCode) {
-      try {
-        await navigator.clipboard.writeText(redeemCode);
-        setCopiedCode(true);
-        onToast('Código copiado!', 'success');
-        setTimeout(() => setCopiedCode(false), 2000);
-      } catch (error) {
-        onToast('Erro ao copiar código', 'error');
-      }
-    }
+    if (member) loadMemberData();   // recarrega saldo/histórico
   };
 
   const refreshData = () => {
@@ -163,7 +185,9 @@ export function Dashboard({ onToast }: DashboardProps) {
             </div>
             <div>
               <p className="text-white font-medium">{member?.email}</p>
-              <p className="text-purple-200 text-sm">Membro desde {new Date(member?.created_at || '').toLocaleDateString('pt-BR')}</p>
+              <p className="text-purple-200 text-sm">
+                Membro desde {new Date(member?.created_at || '').toLocaleDateString('pt-BR')}
+              </p>
             </div>
           </div>
         </div>
@@ -176,9 +200,9 @@ export function Dashboard({ onToast }: DashboardProps) {
               <h2 className="text-lg font-semibold">Seus Pontos</h2>
             </div>
           </div>
-          
+
           <div className="text-3xl font-bold mb-4">{balance.toLocaleString('pt-BR')} pts</div>
-          
+
           <button
             onClick={() => setShowRedeemModal(true)}
             className="w-full bg-white/20 backdrop-blur text-white font-semibold py-4 px-6 rounded-xl hover:bg-white/30 transition-all duration-200 flex items-center justify-center gap-2"
@@ -188,57 +212,54 @@ export function Dashboard({ onToast }: DashboardProps) {
           </button>
         </div>
 
-        {/* Redeem Code Display */}
-        {redeemCode && (
-          <div className="bg-gradient-to-r from-green-500 to-emerald-500 rounded-2xl p-6 text-white">
-            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-              <Gift className="w-5 h-5" />
-              Código de Desconto
-            </h3>
-            
-            <div className="bg-white/20 backdrop-blur rounded-xl p-4 mb-4">
-              <p className="text-2xl font-mono font-bold text-center tracking-wider">
-                {redeemCode}
-              </p>
-            </div>
-            
-            <div className="flex gap-3">
-              <button
-                onClick={handleCopyCode}
-                className="flex-1 bg-white/20 backdrop-blur text-white font-semibold py-3 px-4 rounded-lg hover:bg-white/30 transition-all duration-200 flex items-center justify-center gap-2"
-              >
-                {copiedCode ? (
-                  <CheckCircle className="w-5 h-5" />
-                ) : (
-                  <Copy className="w-5 h-5" />
-                )}
-                {copiedCode ? 'Copiado!' : 'Copiar código'}
-              </button>
-              <button
-                onClick={() => setRedeemCode(null)}
-                className="bg-white/20 backdrop-blur text-white font-semibold py-3 px-4 rounded-lg hover:bg-white/30 transition-all duration-200"
-              >
-                Fechar
-              </button>
-            </div>
-            
-            <p className="text-sm text-white/80 text-center mt-3">
-              Use este código no checkout para aplicar seu desconto
-            </p>
+        {/* Tabs */}
+        <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-2 border border-white/20">
+          <div className="flex gap-2">
+            <button
+              className={`flex-1 py-2 rounded-xl text-sm font-medium transition ${
+                activeTab === 'history'
+                  ? 'bg-white/20 text-white'
+                  : 'text-purple-200 hover:text-white'
+              }`}
+              onClick={() => setActiveTab('history')}
+            >
+              Histórico de Pontos
+            </button>
+            <button
+              className={`flex-1 py-2 rounded-xl text-sm font-medium transition ${
+                activeTab === 'redemptions'
+                  ? 'bg-white/20 text-white'
+                  : 'text-purple-200 hover:text-white'
+              }`}
+              onClick={() => setActiveTab('redemptions')}
+            >
+              Meus resgates
+            </button>
           </div>
-        )}
+        </div>
 
-        {/* Points History */}
-        <PointsHistory entries={history} loading={historyLoading} />
+        {/* Conteúdo da tab */}
+        {activeTab === 'history' ? (
+          <PointsHistory entries={history} loading={historyLoading} />
+        ) : (
+          <RedemptionsHistory entries={redemptions} loading={redemptionsLoading} />
+        )}
       </div>
 
-      {/* Redeem Modal */}
+      {/* Modais */}
       <RedeemModal
         isOpen={showRedeemModal}
         onClose={() => setShowRedeemModal(false)}
         onToast={onToast}
         onRedeemSuccess={handleRedeemSuccess}
         currentPoints={balance}
+      />
+
+      <RedeemCodeModal
+        isOpen={!!redeemCode}
+        code={redeemCode}
+        onClose={() => setRedeemCode(null)}
+        onToast={onToast}
       />
     </div>
   );

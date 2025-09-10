@@ -24,7 +24,7 @@ function App() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-violet-900 to-indigo-900 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-violet-950 via-purple-950 to-indigo-950 flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-4 border-purple-500 border-t-transparent"></div>
       </div>
     );
@@ -32,12 +32,8 @@ function App() {
 
   return (
     <>
-      {user ? (
-        <Dashboard onToast={showToast} />
-      ) : (
-        <Login onToast={showToast} />
-      )}
-      
+      {user ? <Dashboard onToast={showToast} /> : <Login onToast={showToast} />}
+
       {toast.show && (
         <Toast
           message={toast.message}
