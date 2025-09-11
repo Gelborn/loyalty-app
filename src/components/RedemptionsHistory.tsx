@@ -1,5 +1,5 @@
 import React from 'react';
-import { Gift, TrendingUp, TrendingDown, CheckCircle2, XCircle, Clock, Calendar } from 'lucide-react';
+import { Gift, CheckCircle2 } from 'lucide-react';
 
 export interface RedemptionEntry {
   id: string;
@@ -17,9 +17,11 @@ export interface RedemptionEntry {
 interface RedemptionsHistoryProps {
   entries: RedemptionEntry[];
   loading: boolean;
+  /** Quando true, lista ocupa a altura do pai (sem max-h fixa). */
+  expand?: boolean;
 }
 
-export function RedemptionsHistory({ entries, loading }: RedemptionsHistoryProps) {
+export function RedemptionsHistory({ entries, loading, expand = false }: RedemptionsHistoryProps) {
   const formatDate = (dateString: string | null) => {
     if (!dateString) return '—';
     const date = new Date(dateString);
@@ -68,8 +70,13 @@ export function RedemptionsHistory({ entries, loading }: RedemptionsHistoryProps
     );
   }
 
+  // Scroll container controlado por prop expand (compatível com layout original)
+  const scrollClasses = expand
+    ? 'h-full max-h-none min-h-0 overflow-y-auto'
+    : 'max-h-64 overflow-y-auto';
+
   return (
-    <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20">
+    <div className={`bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20 ${expand ? 'h-full' : ''}`}>
       <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
         <Gift className="w-5 h-5" />
         Meus resgates
@@ -84,7 +91,7 @@ export function RedemptionsHistory({ entries, loading }: RedemptionsHistoryProps
           </p>
         </div>
       ) : (
-        <div className="space-y-3 max-h-64 overflow-y-auto">
+        <div className={`space-y-3 ${scrollClasses}`}>
           {entries.map((r) => (
             <div
               key={r.id}

@@ -38,9 +38,7 @@ export function Dashboard({ onToast }: DashboardProps) {
   useEffect(() => {
     function onDocClick(e: MouseEvent) {
       if (!profileRef.current) return;
-      if (!profileRef.current.contains(e.target as Node)) {
-        setProfileOpen(false);
-      }
+      if (!profileRef.current.contains(e.target as Node)) setProfileOpen(false);
     }
     function onEsc(e: KeyboardEvent) {
       if (e.key === 'Escape') setProfileOpen(false);
@@ -81,10 +79,7 @@ export function Dashboard({ onToast }: DashboardProps) {
         .single();
       if (!balanceError && balanceData) setBalance(balanceData.points);
 
-      await Promise.all([
-        loadHistory(memberData.id),
-        loadRedemptions(memberData.id),
-      ]);
+      await Promise.all([loadHistory(memberData.id), loadRedemptions(memberData.id)]);
     } catch {
       onToast('Erro ao carregar dados', 'error');
     } finally {
@@ -168,7 +163,7 @@ export function Dashboard({ onToast }: DashboardProps) {
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-900 via-violet-900 to-indigo-900 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-4 border-purple-500 border-t-transparent"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-4 border-purple-500 border-t-transparent" />
       </div>
     );
   }
@@ -208,7 +203,7 @@ export function Dashboard({ onToast }: DashboardProps) {
                 {profileOpen && (
                   <div
                     role="menu"
-                    className="absolute right-0 mt-2 w-72 rounded-2xl border border-white/30 bg-black/70 backdrop-blur-md shadow-xl p-3 text-sm"
+                    className="absolute right-0 mt-2 w-72 rounded-2xl border border-white/30 bg-black/80 backdrop-blur-md shadow-xl p-3 text-sm"
                   >
                     <div className="px-2 py-2">
                       <p className="text-white font-medium truncate">
@@ -259,13 +254,11 @@ export function Dashboard({ onToast }: DashboardProps) {
         </div>
 
         {/* Tabs */}
-        <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-2 border border-white/20 flex flex-col min-h-[500px]">
+        <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-2 border border-white/20 flex flex-col min-h-[400px]">
           <div className="flex gap-2 mb-3">
             <button
               className={`flex-1 py-2 rounded-xl text-sm font-medium transition ${
-                activeTab === 'history'
-                  ? 'bg-white/20 text-white'
-                  : 'text-purple-200 hover:text-white'
+                activeTab === 'history' ? 'bg-white/20 text-white' : 'text-purple-200 hover:text-white'
               }`}
               onClick={() => setActiveTab('history')}
             >
@@ -273,9 +266,7 @@ export function Dashboard({ onToast }: DashboardProps) {
             </button>
             <button
               className={`flex-1 py-2 rounded-xl text-sm font-medium transition ${
-                activeTab === 'redemptions'
-                  ? 'bg-white/20 text-white'
-                  : 'text-purple-200 hover:text-white'
+                activeTab === 'redemptions' ? 'bg-white/20 text-white' : 'text-purple-200 hover:text-white'
               }`}
               onClick={() => setActiveTab('redemptions')}
             >
@@ -283,12 +274,12 @@ export function Dashboard({ onToast }: DashboardProps) {
             </button>
           </div>
 
-          {/* Conteúdo da tab */}
-          <div className="h-[420px] overflow-y-auto pr-1">
+          {/* Conteúdo da tab com expand */}
+          <div className="h-[400px] overflow-y-auto pr-1">
             {activeTab === 'history' ? (
-              <PointsHistory entries={history} loading={historyLoading} />
+              <PointsHistory entries={history} loading={historyLoading} expand />
             ) : (
-              <RedemptionsHistory entries={redemptions} loading={redemptionsLoading} />
+              <RedemptionsHistory entries={redemptions} loading={redemptionsLoading} expand />
             )}
           </div>
         </div>
@@ -302,7 +293,6 @@ export function Dashboard({ onToast }: DashboardProps) {
         onRedeemSuccess={handleRedeemSuccess}
         currentPoints={balance}
       />
-
       <RedeemCodeModal
         isOpen={!!redeemCode}
         code={redeemCode}

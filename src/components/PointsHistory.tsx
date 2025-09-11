@@ -5,9 +5,11 @@ import { PointsLedgerEntry } from '../types';
 interface PointsHistoryProps {
   entries: PointsLedgerEntry[];
   loading: boolean;
+  /** Quando true, lista ocupa a altura do pai (sem max-h fixa). */
+  expand?: boolean;
 }
 
-export function PointsHistory({ entries, loading }: PointsHistoryProps) {
+export function PointsHistory({ entries, loading, expand = false }: PointsHistoryProps) {
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('pt-BR', {
@@ -52,8 +54,13 @@ export function PointsHistory({ entries, loading }: PointsHistoryProps) {
     );
   }
 
+  // Scroll container: mantém max-h-64 por padrão; expande quando expand = true
+  const scrollClasses = expand
+    ? 'h-full max-h-none min-h-0 overflow-y-auto'
+    : 'max-h-64 overflow-y-auto';
+
   return (
-    <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20">
+    <div className={`bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20 ${expand ? 'h-full' : ''}`}>
       <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
         <Calendar className="w-5 h-5" />
         Histórico de Pontos
@@ -68,25 +75,27 @@ export function PointsHistory({ entries, loading }: PointsHistoryProps) {
           </p>
         </div>
       ) : (
-        <div className="space-y-3 max-h-64 overflow-y-auto">
+        <div className={`space-y-3 ${scrollClasses}`}>
           {entries.map((entry) => (
             <div
               key={entry.id}
               className="flex items-center justify-between p-3 bg-white/5 rounded-lg hover:bg-white/10 transition-colors"
             >
               <div className="flex items-center gap-3">
-                <div className={`p-2 rounded-full ${
-                  entry.delta_points > 0 
-                    ? 'bg-green-500/20 text-green-400' 
-                    : 'bg-red-500/20 text-red-400'
-                }`}>
+                <div
+                  className={`p-2 rounded-full ${
+                    entry.delta_points > 0
+                      ? 'bg-green-500/20 text-green-400'
+                      : 'bg-red-500/20 text-red-400'
+                  }`}
+                >
                   {entry.delta_points > 0 ? (
                     <TrendingUp className="w-4 h-4" />
                   ) : (
                     <TrendingDown className="w-4 h-4" />
                   )}
                 </div>
-                
+
                 <div>
                   <p className="text-white text-sm font-medium">
                     {formatReason(entry.reason)}
@@ -97,10 +106,13 @@ export function PointsHistory({ entries, loading }: PointsHistoryProps) {
                 </div>
               </div>
 
-              <div className={`font-semibold ${
-                entry.delta_points > 0 ? 'text-green-400' : 'text-red-400'
-              }`}>
-                {entry.delta_points > 0 ? '+' : ''}{entry.delta_points} pts
+              <div
+                className={`font-semibold ${
+                  entry.delta_points > 0 ? 'text-green-400' : 'text-red-400'
+                }`}
+              >
+                {entry.delta_points > 0 ? '+' : ''}
+                {entry.delta_points.toLocaleString('pt-BR')} pts
               </div>
             </div>
           ))}
