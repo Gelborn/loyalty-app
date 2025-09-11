@@ -259,7 +259,7 @@ export function Dashboard({ onToast }: DashboardProps) {
         </div>
 
         {/* Tabs */}
-        <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-2 border border-white/20 min-h-[500px]">
+        <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-2 border border-white/20 flex flex-col min-h-[500px]">
           <div className="flex gap-2 mb-3">
             <button
               className={`flex-1 py-2 rounded-xl text-sm font-medium transition ${
