@@ -28,7 +28,6 @@ export function Dashboard({ onToast }: DashboardProps) {
   const [showRedeemModal, setShowRedeemModal] = useState(false);
   const [redeemCode, setRedeemCode] = useState<string | null>(null);
 
-  // Profile dropdown
   const [profileOpen, setProfileOpen] = useState(false);
   const profileRef = useRef<HTMLDivElement | null>(null);
 
@@ -62,7 +61,6 @@ export function Dashboard({ onToast }: DashboardProps) {
         return;
       }
 
-      // Membro
       const { data: memberData, error: memberError } = await supabase
         .from('loyalty_members')
         .select('id, email, user_id, created_at')
@@ -76,7 +74,6 @@ export function Dashboard({ onToast }: DashboardProps) {
       }
       setMember(memberData);
 
-      // Saldo
       const { data: balanceData, error: balanceError } = await supabase
         .from('member_balances')
         .select('points')
@@ -84,7 +81,6 @@ export function Dashboard({ onToast }: DashboardProps) {
         .single();
       if (!balanceError && balanceData) setBalance(balanceData.points);
 
-      // Histórico + Resgates
       await Promise.all([
         loadHistory(memberData.id),
         loadRedemptions(memberData.id),
@@ -130,7 +126,7 @@ export function Dashboard({ onToast }: DashboardProps) {
         .order('created_at', { ascending: false })
         .limit(50);
 
-    if (!error && data) {
+      if (!error && data) {
         const mapped: RedemptionEntry[] = data.map((r: any) => ({
           id: r.id,
           code: r.discount_code ?? '',
@@ -153,9 +149,9 @@ export function Dashboard({ onToast }: DashboardProps) {
   };
 
   const handleRedeemSuccess = (code: string) => {
-    setRedeemCode(code);            // abre o modal com o código
+    setRedeemCode(code);
     onToast('Recompensa resgatada com sucesso!', 'success');
-    if (member) loadMemberData();   // recarrega saldo/histórico
+    if (member) loadMemberData();
   };
 
   const refreshData = () => {
@@ -186,7 +182,6 @@ export function Dashboard({ onToast }: DashboardProps) {
             <h1 className="text-xl font-bold text-white">Loyalty App</h1>
 
             <div className="flex items-center gap-2">
-              {/* Refresh */}
               <button
                 onClick={refreshData}
                 className="p-2 text-white/60 hover:text-white transition-colors"
@@ -213,7 +208,7 @@ export function Dashboard({ onToast }: DashboardProps) {
                 {profileOpen && (
                   <div
                     role="menu"
-                    className="absolute right-0 mt-2 w-72 rounded-2xl border border-white/20 bg-white/10 backdrop-blur-xl shadow-xl p-3 text-sm"
+                    className="absolute right-0 mt-2 w-72 rounded-2xl border border-white/30 bg-black/70 backdrop-blur-md shadow-xl p-3 text-sm"
                   >
                     <div className="px-2 py-2">
                       <p className="text-white font-medium truncate">
@@ -264,8 +259,8 @@ export function Dashboard({ onToast }: DashboardProps) {
         </div>
 
         {/* Tabs */}
-        <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-2 border border-white/20">
-          <div className="flex gap-2">
+        <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-2 border border-white/20 min-h-[500px]">
+          <div className="flex gap-2 mb-3">
             <button
               className={`flex-1 py-2 rounded-xl text-sm font-medium transition ${
                 activeTab === 'history'
@@ -287,14 +282,16 @@ export function Dashboard({ onToast }: DashboardProps) {
               Meus resgates
             </button>
           </div>
-        </div>
 
-        {/* Conteúdo da tab */}
-        {activeTab === 'history' ? (
-          <PointsHistory entries={history} loading={historyLoading} />
-        ) : (
-          <RedemptionsHistory entries={redemptions} loading={redemptionsLoading} />
-        )}
+          {/* Conteúdo da tab */}
+          <div className="h-[420px] overflow-y-auto pr-1">
+            {activeTab === 'history' ? (
+              <PointsHistory entries={history} loading={historyLoading} />
+            ) : (
+              <RedemptionsHistory entries={redemptions} loading={redemptionsLoading} />
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Modais */}
