@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { User, Star, Gift, LogOut, RefreshCw } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { User, Star, Gift, LogOut, RefreshCw, ChevronDown } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { LoyaltyMember, PointsLedgerEntry } from '../types';
 import { PointsHistory } from './PointsHistory';
@@ -28,8 +28,30 @@ export function Dashboard({ onToast }: DashboardProps) {
   const [showRedeemModal, setShowRedeemModal] = useState(false);
   const [redeemCode, setRedeemCode] = useState<string | null>(null);
 
+  // Profile dropdown
+  const [profileOpen, setProfileOpen] = useState(false);
+  const profileRef = useRef<HTMLDivElement | null>(null);
+
   useEffect(() => {
     loadMemberData();
+  }, []);
+
+  useEffect(() => {
+    function onDocClick(e: MouseEvent) {
+      if (!profileRef.current) return;
+      if (!profileRef.current.contains(e.target as Node)) {
+        setProfileOpen(false);
+      }
+    }
+    function onEsc(e: KeyboardEvent) {
+      if (e.key === 'Escape') setProfileOpen(false);
+    }
+    document.addEventListener('mousedown', onDocClick);
+    document.addEventListener('keydown', onEsc);
+    return () => {
+      document.removeEventListener('mousedown', onDocClick);
+      document.removeEventListener('keydown', onEsc);
+    };
   }, []);
 
   const loadMemberData = async () => {
@@ -108,7 +130,7 @@ export function Dashboard({ onToast }: DashboardProps) {
         .order('created_at', { ascending: false })
         .limit(50);
 
-      if (!error && data) {
+    if (!error && data) {
         const mapped: RedemptionEntry[] = data.map((r: any) => ({
           id: r.id,
           code: r.discount_code ?? '',
@@ -143,6 +165,10 @@ export function Dashboard({ onToast }: DashboardProps) {
     }
   };
 
+  const memberSince = member?.created_at
+    ? new Date(member.created_at).toLocaleDateString('pt-BR')
+    : '-';
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-900 via-violet-900 to-indigo-900 flex items-center justify-center">
@@ -158,40 +184,65 @@ export function Dashboard({ onToast }: DashboardProps) {
         <div className="max-w-lg mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <h1 className="text-xl font-bold text-white">Loyalty App</h1>
+
             <div className="flex items-center gap-2">
+              {/* Refresh */}
               <button
                 onClick={refreshData}
                 className="p-2 text-white/60 hover:text-white transition-colors"
+                aria-label="Atualizar dados"
+                title="Atualizar"
               >
                 <RefreshCw className="w-5 h-5" />
               </button>
-              <button
-                onClick={handleSignOut}
-                className="p-2 text-white/60 hover:text-white transition-colors"
-              >
-                <LogOut className="w-5 h-5" />
-              </button>
+
+              {/* Profile Dropdown */}
+              <div className="relative" ref={profileRef}>
+                <button
+                  onClick={() => setProfileOpen((v) => !v)}
+                  className="flex items-center gap-2 pl-1 pr-2 py-1 rounded-full hover:bg-white/10 transition"
+                  aria-haspopup="menu"
+                  aria-expanded={profileOpen}
+                >
+                  <div className="w-9 h-9 bg-gradient-to-r from-purple-500 to-violet-500 rounded-full flex items-center justify-center shadow-inner">
+                    <User className="w-5 h-5 text-white" />
+                  </div>
+                  <ChevronDown className="w-4 h-4 text-white/80" />
+                </button>
+
+                {profileOpen && (
+                  <div
+                    role="menu"
+                    className="absolute right-0 mt-2 w-72 rounded-2xl border border-white/20 bg-white/10 backdrop-blur-xl shadow-xl p-3 text-sm"
+                  >
+                    <div className="px-2 py-2">
+                      <p className="text-white font-medium truncate">
+                        {member?.email || 'Usuário'}
+                      </p>
+                      <p className="text-purple-200/80">
+                        Membro desde {memberSince}
+                      </p>
+                    </div>
+
+                    <div className="h-px bg-white/10 my-2" />
+
+                    <button
+                      onClick={handleSignOut}
+                      className="w-full flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-white/10 text-white transition"
+                      role="menuitem"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      Sair
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
       </header>
 
       <div className="max-w-lg mx-auto p-4 space-y-6">
-        {/* User Info */}
-        <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-violet-500 rounded-full flex items-center justify-center">
-              <User className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <p className="text-white font-medium">{member?.email}</p>
-              <p className="text-purple-200 text-sm">
-                Membro desde {new Date(member?.created_at || '').toLocaleDateString('pt-BR')}
-              </p>
-            </div>
-          </div>
-        </div>
-
         {/* Points Balance */}
         <div className="bg-gradient-to-r from-purple-500 to-violet-500 rounded-2xl p-6 text-white">
           <div className="flex items-center justify-between mb-4">
